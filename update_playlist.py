@@ -10,8 +10,7 @@ os.environ["SPOTIPY_CLIENT_ID"] = "7fd22ab7a9a943c79928daf24119f162"
 os.environ["SPOTIPY_CLIENT_SECRET"] = "c2bbae41e56141049f3f43513fd7da61"
 os.environ["SPOTIPY_REDIRECT_URI"] = "https://localhost:8588/callback"
 
-ARTISTS_FILE = "./artists.csv"
-# ARTISTS_FILE = "./debug_artists.txt"
+ARTISTS_FILE = "./failed_artists.txt"
 PLAYLIST = "4H6AOPQVZd2TsfV7ploApK"
 DATETIME_FORMATS = ["%Y-%m-%d", "%Y-%m", "%Y"]
 SIMILARITY_THRESHOLD = 0.75
@@ -29,9 +28,10 @@ def datestr_to_datetime(datestr):
 
 def _get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--playlist", default=PLAYLIST)
+    parser.add_argument("--playlist", "-p", default=PLAYLIST)
     parser.add_argument("--input-file", "-i", default=ARTISTS_FILE)
-    parser.add_argument("--use-similarity", "-s", action="store_true", default=False)
+    parser.add_argument("--use-similarity", action="store_true", default=True)
+    parser.add_argument("--use-start", action="store_true", default=False)
     return parser
 
 def get_unique_albums_by_name(albums):
@@ -59,7 +59,7 @@ def get_album_tracks(album_id, sp):
     track_ids = [item["id"] for item in sp.album(album_id)["tracks"]["items"]]
     tracks = [sp.track(id) for id in track_ids]
     tracks = [track for track in tracks if 
-                len(track["artists"]) == 1]
+                len(track["artists"]) == 1 and track["artists"][0]["name"] != "Various Artists"]
     return tracks
 
 def load_artists(filepath):
@@ -75,7 +75,7 @@ def get_artist_query(artist):
     # some special characters in artist name can screw up the query. replace these.
     return artist.replace(":", "\:")
 
-def get_artist_id(artist, sp, use_similarity):
+def get_artist_id(artist, sp, use_similarity, use_start):
     artist_query = get_artist_query(artist)
     results = sp.search(q=f"artist:{artist_query}", limit=30, type="artist")
     names_and_ids = get_artists_names_ids(results)
@@ -91,9 +91,10 @@ def get_artist_id(artist, sp, use_similarity):
     # second loop: check if beginnings of names match
     # ie artist "John Smith" would match with "John Smith Trio"
     for _, name, id in names_and_ids:
-        if name.lower().startswith(artist.lower()):
-            info = f"No match for artist {artist}. Choosing best alternative {name}."
-            return id, info
+        if use_start:
+            if name.lower().startswith(artist.lower()):
+                info = f"No match for artist {artist}. Choosing best alternative {name}."
+                return id, info
     
     # If nothing found, select most similar artist name
     # if similarity is above threshold
@@ -110,6 +111,8 @@ def empty_playlist(playlist, sp):
     playlist_items = sp.playlist_items(playlist)['items']
     
     while playlist_items:
+        if not isinstance(playlist_items, list):
+            return
         track_ids = [item['track']['id'] for item in playlist_items]
         sp.playlist_remove_all_occurrences_of_items(playlist, track_ids)
         playlist_items = sp.playlist_items(playlist)
@@ -129,7 +132,8 @@ def main():
         try:
 
             print(f"Processing {artist}")
-            artist_id, info = get_artist_id(artist, sp, args.use_similarity)
+            artist_id, info = get_artist_id(artist, sp, args.use_similarity,
+                                args.use_start)
             infos.append(info)
             if artist_id is None:
                 continue
@@ -138,6 +142,8 @@ def main():
             album_tracks = sorted(album_tracks, key = lambda x: x["popularity"],
                                     reverse=True)
             latest_album_top_track = album_tracks[0]
+            if latest_album_top_track["id"] == "5ebk0kx4g0iB3xXyW7g1a1":
+                print("DEBUG")
             tracks.append(latest_album_top_track["id"])
         except Exception as e:
             infos.append(f"Error processing {artist}: {e}")
