@@ -63,8 +63,12 @@ def get_album_tracks(album_id, sp):
     return tracks
 
 def load_artists(filepath):
+    final_lines = []
     with open(filepath, 'r') as f:
-        return [line.strip() for line in f.readlines() if line.strip()]
+        lines = [line.strip() for line in f.readlines()]
+        for line in lines:
+            final_lines += [artist.strip() for artist in line.split("%%")]
+    return final_lines
 
 def get_artists_names_ids(results):
     names_and_ids = [(artist['name'], artist['id']) for artist in 
