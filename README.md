@@ -1,26 +1,34 @@
-Build spotify playlist from newline-separated list of artist names. Will select the most popular track from the artists latest release.
 
-Setup: pip install -r requirements.txt
+# TL;DR
+Build a spotify playlist from newline-separated list of artist names. Will select the most popular track from the artists latest release.
 
-You'll first need to set up spotify developer credentials as described in this video: https://www.youtube.com/watch?v=3RGm4jALukM&t=266s
+  
 
-Using the credentials you just created, change the SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET variables in update_playlist.py  
-Create a playlist in the Spotify UI. Access it from the browser, grab the ID, and assign that to the PLAYLIST variable.  
-Example: For the playlist URL https://open.spotify.com/playlist/4H6AOPQVZd2TsfV7ploApK, the ID is 4H6AOPQVZd2TsfV7ploApK.
+# Setup
+- You'll first need to set up spotify developer credentials as described in this video: https://www.youtube.com/watch?v=3RGm4jALukM&t=266s
+- Using the credentials you just created, change the SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET variables in update_playlist.py
+- Create a playlist in the Spotify UI. Access it from the browser, grab the ID, and assign that to the PLAYLIST variable.
+	- Example: For the playlist URL https://open.spotify.com/playlist/4H6AOPQVZd2TsfV7ploApK, the ID is 4H6AOPQVZd2TsfV7ploApK.
+- Once that's all done, go to the project repo directory and install requirements
+	- ```pip3 install -r requirements.txt```
 
-Careful! The script empties the existing playlist before adding new tracks. To be safe, try it out on a test playlist first.   
+# Usage:
+  There are a few ways to call the script.
+  - ```python update_playlist.py -i artists.csv -p playlist_id``` is the most basic method. It doesn't have any handling of non-matched artist names.
+  - ```python update_playlist.py -i artists.csv -p playlist_id --use-similarity``` will select similar artist names if no exact match is found (ie if "Stephen King" is input and not found, it might select "Stefen King")
+  - ```python update_playlist.py -i artists.csv -p playlist_id --use-start``` will select artists sharing the first part of their name, if no exact match is found. ie if "Stephen King" is selected and not found, it might select "Stephen King Trio"  
+  - ```python update_playlist.py -i artists.csv -p playlist_id --use-start --use-similarity``` combines the two previous options.
 
-Usage:  
-python update_playlist.py -p PLAYLIST_ID -i artists_file.txt  
-Or just modify the playlist and input variables in the file, and run like:  
-python update_playlist.py
+To get the most out of it, first manually correct any typos in artist names. 
 
-HOW IT WORKS:
-Queries for artists using the spotify API, looks for their latest albums, and selects the most popular track.  
-If there's no exact match for an artist name, it first looks for artist names that have a matching beginning, ie "Stephen King" and "Stephen King Trio".  
-If that doesn't work out, it looks for the most similar artist name, ie "Stefen King" would probably match for "Stephen King".
+# Careful! 
+**The script empties the existing playlist before adding new tracks. To be safe, try it out on a test playlist first.**
 
-ISSUES:
-Some artists return no results when using the API, despire the fact that they can be found quickly in the app / browser.
+# Notes
+- the script will not select any tracks with multiple artists.
 
+  
 
+# ISSUES
+- Some artists return no results when using the API, despire the fact that they can be found quickly in the app / browser.
+- I think there's sometimes an error while emptying the playlist. I may have solved it just now, not really sure.
